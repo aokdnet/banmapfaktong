@@ -1278,6 +1278,70 @@
   @media (max-width: 720px) {
     .install-banner { bottom: 90px; }
   }
+
+  /* ===== BACKUP REMINDER ===== */
+  .backup-reminder {
+    position: sticky;
+    top: 145px;
+    z-index: 30;
+    margin: 0 auto 18px;
+    max-width: 1320px;
+    background: linear-gradient(90deg, rgba(255, 201, 61, 0.15), rgba(255, 201, 61, 0.05));
+    border: 1px solid rgba(255, 201, 61, 0.4);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  }
+  .backup-reminder.show { display: flex; }
+  .backup-reminder-icon {
+    width: 36px; height: 36px;
+    background: rgba(255, 201, 61, 0.2);
+    color: var(--warning);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .backup-reminder-text { flex: 1; min-width: 0; }
+  .backup-reminder-text strong {
+    display: block;
+    font-size: 14px;
+    color: var(--warning);
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .backup-reminder-text span {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .backup-reminder-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .backup-reminder-actions button {
+    background: var(--warning);
+    color: var(--bg);
+    border: none;
+    padding: 8px 16px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.15s;
+  }
+  .backup-reminder-actions button:hover { background: #FFD66A; }
+  .backup-reminder-actions .dismiss-btn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    font-weight: 500;
+  }
+  .backup-reminder-actions .dismiss-btn:hover { color: var(--text); }
+  @media (max-width: 720px) {
+    .backup-reminder { top: 130px; flex-wrap: wrap; padding: 12px 14px; }
+    .backup-reminder-text { flex: 1 1 200px; }
+  }
 </style>
 </head>
 <body>
@@ -1322,6 +1386,21 @@
 </div>
 
 <main>
+
+  <!-- Backup Reminder Banner -->
+  <div class="backup-reminder" id="backup-reminder">
+    <div class="backup-reminder-icon">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div class="backup-reminder-text">
+      <strong>ถึงเวลาสำรองข้อมูลแล้ว</strong>
+      <span id="backup-reminder-detail">คุณยังไม่ได้สำรองข้อมูลมาเกิน 30 วันแล้ว แนะนำให้ส่งออกไฟล์เก็บไว้</span>
+    </div>
+    <div class="backup-reminder-actions">
+      <button class="dismiss-btn" onclick="dismissBackupReminder()">เตือนภายหลัง</button>
+      <button onclick="exportJSON()">สำรองทันที</button>
+    </div>
+  </div>
 
   <!-- ===== DASHBOARD ===== -->
   <section class="view active" id="dashboard">
@@ -1661,7 +1740,9 @@
             </div>
             <div class="field">
               <label>ภาคเรียน/ปีการศึกษา</label>
-              <input type="text" name="semester" placeholder="เช่น 1/2569">
+              <select name="semester" id="form-semester">
+                <option value="">-- เลือกภาคเรียน --</option>
+              </select>
             </div>
             <div class="field field-full">
               <label>สรุปผลการเยี่ยม</label>
@@ -1698,6 +1779,9 @@
 
     <div class="toolbar">
       <input type="text" class="search-input" id="search" placeholder="ค้นหาชื่อนักเรียน เลขประจำตัว ครูผู้เยี่ยม...">
+      <select class="filter-select" id="filter-semester">
+        <option value="">ทุกภาคเรียน</option>
+      </select>
       <select class="filter-select" id="filter-grade">
         <option value="">ทุกชั้น</option>
         <option>อนุบาล 1</option><option>อนุบาล 2</option><option>อนุบาล 3</option>
@@ -1720,6 +1804,10 @@
         <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         นำเข้า
       </button>
+      <button class="btn btn-sm btn-danger" onclick="clearAllData()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        ล้างข้อมูลทั้งหมด
+      </button>
     </div>
 
     <div id="visit-list-container"></div>
@@ -1741,6 +1829,9 @@
     </div>
 
     <div class="toolbar map-toolbar">
+      <select class="filter-select" id="map-filter-semester">
+        <option value="">ทุกภาคเรียน</option>
+      </select>
       <select class="filter-select" id="map-filter-screen">
         <option value="">แสดงทุกกลุ่ม</option>
         <option value="ปกติ">เฉพาะกลุ่มปกติ</option>
@@ -1788,6 +1879,13 @@
       </div>
     </div>
 
+    <div class="toolbar" style="margin-bottom: 18px;">
+      <select class="filter-select" id="report-filter-semester" style="min-width: 200px;">
+        <option value="">รวมทุกภาคเรียน</option>
+      </select>
+      <span style="font-size: 13px; color: var(--text-muted); padding: 0 8px;">เลือกภาคเรียนเพื่อดูสถิติเฉพาะช่วง</span>
+    </div>
+
     <div class="report-grid">
       <div class="chart-box">
         <h4>การคัดกรองนักเรียน</h4>
@@ -1801,7 +1899,11 @@
         <h4>ด้านที่พบความเสี่ยง</h4>
         <div id="chart-risk"></div>
       </div>
-      <div class="chart-box stat-rows">
+      <div class="chart-box">
+        <h4>การเยี่ยมตามภาคเรียน</h4>
+        <div id="chart-semester"></div>
+      </div>
+      <div class="chart-box stat-rows" style="grid-column: 1 / -1;">
         <h4>สถิติเพิ่มเติม</h4>
         <div id="chart-extra"></div>
       </div>
@@ -1859,6 +1961,8 @@
 <script>
   // ===== CONFIG =====
   const STORAGE_KEY = 'banmapfaktong_visits_v2';
+  const BACKUP_DATE_KEY = 'banmapfaktong_last_backup';
+  const BACKUP_REMINDER_DAYS = 30;
   // ที่ตั้งโดยประมาณของโรงเรียนบ้านมาบฟัทอง ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี
   const SCHOOL_COORDS = [12.8157, 100.9542];
   const SCHOOL_NAME = 'โรงเรียนบ้านมาบฟัทอง';
@@ -1867,6 +1971,83 @@
   let map = null;
   let markers = [];
   let schoolMarker = null;
+
+  // ===== SEMESTER HELPERS =====
+  function getCurrentSemester() {
+    const now = new Date();
+    const month = now.getMonth() + 1; // 1-12
+    const yearBE = now.getFullYear() + 543;
+    // ภาคเรียนที่ 1: พ.ค.-ต.ค. (5-10), ภาคเรียนที่ 2: พ.ย.-เม.ย.
+    if (month >= 5 && month <= 10) {
+      return `1/${yearBE}`;
+    } else if (month >= 11) {
+      return `2/${yearBE}`;
+    } else {
+      // ม.ค.-เม.ย. = ภาคเรียน 2 ของปีก่อนหน้า
+      return `2/${yearBE - 1}`;
+    }
+  }
+
+  function generateSemesterOptions() {
+    const current = getCurrentSemester();
+    const [, currentYear] = current.split('/');
+    const baseYear = parseInt(currentYear);
+    const opts = [];
+    // สร้าง option: ย้อนหลัง 3 ปี ถึง อนาคต 1 ปี
+    for (let y = baseYear - 3; y <= baseYear + 1; y++) {
+      opts.push(`1/${y}`);
+      opts.push(`2/${y}`);
+    }
+    return opts;
+  }
+
+  function getSemesterFromData(visit) {
+    return visit.semester || '— ไม่ระบุ —';
+  }
+
+  function getAllUsedSemesters() {
+    const set = new Set();
+    visits.forEach(v => { if (v.semester) set.add(v.semester); });
+    const arr = [...set];
+    arr.sort((a, b) => {
+      const [ta, ya] = a.split('/').map(Number);
+      const [tb, yb] = b.split('/').map(Number);
+      if (yb !== ya) return yb - ya;
+      return tb - ta;
+    });
+    return arr;
+  }
+
+  function populateSemesterSelect(selectEl, includeEmpty = true, emptyLabel = 'ทุกภาคเรียน') {
+    const current = getCurrentSemester();
+    const used = getAllUsedSemesters();
+    const generated = generateSemesterOptions();
+    const all = [...new Set([...used, ...generated])];
+    all.sort((a, b) => {
+      const [ta, ya] = a.split('/').map(Number);
+      const [tb, yb] = b.split('/').map(Number);
+      if (yb !== ya) return yb - ya;
+      return tb - ta;
+    });
+    const prevValue = selectEl.value;
+    selectEl.innerHTML = '';
+    if (includeEmpty) {
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = emptyLabel;
+      selectEl.appendChild(opt);
+    }
+    all.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s;
+      const isCurrent = s === current ? ' (ปัจจุบัน)' : '';
+      opt.textContent = `ภาคเรียนที่ ${s}${isCurrent}`;
+      selectEl.appendChild(opt);
+    });
+    if (prevValue && all.includes(prevValue)) {
+      selectEl.value = prevValue;
+    }
+  }
 
   // ===== STORAGE =====
   function loadVisits() {
@@ -1886,9 +2067,27 @@
     document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === name));
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (name === 'dashboard') renderDashboard();
-    if (name === 'list') renderList();
-    if (name === 'report') renderReport();
+    if (name === 'add') {
+      populateSemesterSelect(document.getElementById('form-semester'), false, '');
+      const formSem = document.getElementById('form-semester');
+      // ใส่ default option แรกเป็น placeholder
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = '-- เลือกภาคเรียน --';
+      formSem.insertBefore(placeholder, formSem.firstChild);
+      // ถ้ายังไม่เคยเลือก ให้ default เป็นภาคเรียนปัจจุบัน
+      if (!formSem.value) formSem.value = getCurrentSemester();
+    }
+    if (name === 'list') {
+      populateSemesterSelect(document.getElementById('filter-semester'), true, 'ทุกภาคเรียน');
+      renderList();
+    }
+    if (name === 'report') {
+      populateSemesterSelect(document.getElementById('report-filter-semester'), true, 'รวมทุกภาคเรียน');
+      renderReport();
+    }
     if (name === 'map') {
+      populateSemesterSelect(document.getElementById('map-filter-semester'), true, 'ทุกภาคเรียน');
       setTimeout(() => {
         initMap();
         renderMarkers();
@@ -2030,9 +2229,11 @@
     const q = document.getElementById('search').value.toLowerCase().trim();
     const g = document.getElementById('filter-grade').value;
     const s = document.getElementById('filter-screen').value;
+    const sm = document.getElementById('filter-semester').value;
     let filtered = visits.filter(v => {
       if (g && v.grade !== g) return false;
       if (s && v.screening !== s) return false;
+      if (sm && v.semester !== sm) return false;
       if (q) {
         const blob = [v.student_name, v.student_id, v.teacher_name, v.address].join(' ').toLowerCase();
         if (!blob.includes(q)) return false;
@@ -2048,13 +2249,14 @@
         ${visits.length === 0 ? '<button class="btn btn-primary" onclick="switchView(\'add\')">เริ่มบันทึก</button>' : ''}
       </div>`;
     } else {
-      c.innerHTML = '<div class="visit-grid">' + filtered.map(visitCardHTML).join('') + '</div>';
+      c.innerHTML = `<p style="color: var(--text-muted); font-size: 13px; margin-bottom: 12px;">พบ <strong style="color: var(--neon);">${filtered.length}</strong> รายการ${(sm||g||s||q) ? ' (กรองแล้ว)' : ''}</p>` + '<div class="visit-grid">' + filtered.map(visitCardHTML).join('') + '</div>';
     }
   }
 
   document.getElementById('search').addEventListener('input', renderList);
   document.getElementById('filter-grade').addEventListener('change', renderList);
   document.getElementById('filter-screen').addEventListener('change', renderList);
+  document.getElementById('filter-semester').addEventListener('change', renderList);
 
   // ===== MAP =====
   function initMap() {
@@ -2107,6 +2309,7 @@
 
     const screenFilter = document.getElementById('map-filter-screen').value;
     const gradeFilter = document.getElementById('map-filter-grade').value;
+    const semesterFilter = document.getElementById('map-filter-semester').value;
 
     let counts = { 'ปกติ': 0, 'เสี่ยง': 0, 'ปัญหา': 0, nocoord: 0 };
     visits.forEach(v => {
@@ -2125,6 +2328,7 @@
       if (!v.lat || !v.lng) return false;
       if (screenFilter && v.screening !== screenFilter) return false;
       if (gradeFilter && v.grade !== gradeFilter) return false;
+      if (semesterFilter && v.semester !== semesterFilter) return false;
       return true;
     });
 
@@ -2167,6 +2371,7 @@
 
   document.getElementById('map-filter-screen').addEventListener('change', renderMarkers);
   document.getElementById('map-filter-grade').addEventListener('change', renderMarkers);
+  document.getElementById('map-filter-semester').addEventListener('change', renderMarkers);
 
   // ===== DETAIL MODAL =====
   function viewDetail(id) {
@@ -2243,17 +2448,68 @@
   }
 
   // ===== EXPORT / IMPORT =====
-  function exportJSON() {
+  async function exportJSON() {
     if (visits.length === 0) { alert('ยังไม่มีข้อมูลให้ส่งออก'); return; }
-    const blob = new Blob([JSON.stringify(visits, null, 2)], { type: 'application/json' });
+    const today = new Date().toISOString().slice(0, 10);
+    const filename = `เยี่ยมบ้าน-มาบฟัทอง-${today}.json`;
+    const jsonStr = JSON.stringify(visits, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+
+    // Try Web Share API (works great on mobile - can share to Google Drive app!)
+    if (navigator.share && navigator.canShare) {
+      try {
+        const file = new File([blob], filename, { type: 'application/json' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            files: [file],
+            title: 'สำรองข้อมูลเยี่ยมบ้าน',
+            text: `ข้อมูลการเยี่ยมบ้าน ${visits.length} รายการ จาก ${SCHOOL_NAME}`
+          });
+          markBackupComplete();
+          showToast('แชร์ไฟล์สำเร็จ');
+          return;
+        }
+      } catch (err) {
+        // User cancelled or share failed, fall through to download
+        if (err.name !== 'AbortError') console.log('Share failed:', err);
+      }
+    }
+
+    // Fallback: regular download
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    const today = new Date().toISOString().slice(0, 10);
     a.href = url;
-    a.download = `เยี่ยมบ้าน-มาบฟัทอง-${today}.json`;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+    markBackupComplete();
     showToast('ดาวน์โหลดสำเร็จ');
+
+    // แสดงคำแนะนำ Google Drive หลังดาวน์โหลด (เฉพาะ desktop)
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (!isMobile) {
+      setTimeout(() => showDriveTip(), 800);
+    }
+  }
+
+  function markBackupComplete() {
+    localStorage.setItem(BACKUP_DATE_KEY, new Date().toISOString());
+    hideBackupReminder();
+  }
+
+  function showDriveTip() {
+    if (localStorage.getItem('drive-tip-shown') === '1') return;
+    alert(
+      '💡 เคล็ดลับการสำรองข้อมูล\n\n' +
+      'ไฟล์ JSON ที่ดาวน์โหลดมา ควรเก็บไว้หลายที่:\n\n' +
+      '1. อัปโหลดไปที่ Google Drive ของโรงเรียน\n' +
+      '2. ส่งเข้าอีเมลตัวเอง\n' +
+      '3. เก็บไว้ใน USB drive\n\n' +
+      'หรือถ้าติดตั้ง Google Drive Desktop ไว้\n' +
+      'ให้ลากไฟล์ไปวางในโฟลเดอร์ Google Drive\n' +
+      'ระบบจะ Sync อัตโนมัติ!'
+    );
+    localStorage.setItem('drive-tip-shown', '1');
   }
 
   function importJSON() { document.getElementById('import-file').click(); }
@@ -2281,10 +2537,61 @@
     e.target.value = '';
   });
 
+  // ===== CLEAR ALL DATA (with safety confirmations) =====
+  function clearAllData() {
+    if (visits.length === 0) {
+      alert('ไม่มีข้อมูลให้ล้าง');
+      return;
+    }
+
+    // Step 1: First warning with count
+    const step1 = confirm(
+      `⚠️ คำเตือน: ล้างข้อมูลทั้งหมด\n\n` +
+      `คุณกำลังจะลบข้อมูลการเยี่ยมบ้านทั้งหมด ${visits.length} รายการ\n` +
+      `การกระทำนี้ไม่สามารถย้อนกลับได้!\n\n` +
+      `แนะนำให้ "ส่งออก" สำรองข้อมูลก่อนล้าง\n\n` +
+      `กด OK เพื่อดำเนินการต่อ หรือ Cancel เพื่อยกเลิก`
+    );
+    if (!step1) return;
+
+    // Step 2: Offer backup download
+    const wantBackup = confirm(
+      `ต้องการดาวน์โหลดสำรองข้อมูลก่อนล้างหรือไม่?\n\n` +
+      `กด OK = ดาวน์โหลดสำรองก่อน (แนะนำ)\n` +
+      `กด Cancel = ล้างเลยโดยไม่สำรอง`
+    );
+    if (wantBackup) {
+      exportJSON();
+    }
+
+    // Step 3: Final confirmation - must type "ลบ"
+    const code = prompt(
+      `ยืนยันครั้งสุดท้าย\n\n` +
+      `พิมพ์คำว่า  ลบ  ในช่องด้านล่างเพื่อยืนยันการล้างข้อมูล:`
+    );
+    if (code === null) return;
+    if (code.trim() !== 'ลบ') {
+      alert('ยกเลิกการล้างข้อมูล (พิมพ์คำยืนยันไม่ตรง)');
+      return;
+    }
+
+    // Execute clearing
+    visits = [];
+    saveVisits();
+    renderList();
+    renderDashboard();
+    if (map) renderMarkers();
+    showToast('ล้างข้อมูลทั้งหมดเรียบร้อย');
+  }
+
   // ===== REPORT =====
   function renderReport() {
+    const semFilter = document.getElementById('report-filter-semester').value;
+    const scope = semFilter ? visits.filter(v => v.semester === semFilter) : visits;
+    const scopeLabel = semFilter ? `ภาคเรียนที่ ${semFilter}` : 'ทุกภาคเรียน';
+
     const s = { 'ปกติ': 0, 'เสี่ยง': 0, 'ปัญหา': 0 };
-    visits.forEach(v => { if (s[v.screening] !== undefined) s[v.screening]++; });
+    scope.forEach(v => { if (s[v.screening] !== undefined) s[v.screening]++; });
     const sTotal = Math.max(1, s['ปกติ'] + s['เสี่ยง'] + s['ปัญหา']);
     document.getElementById('chart-screening').innerHTML = [
       ['กลุ่มปกติ', s['ปกติ'], '#B8FF00'],
@@ -2293,7 +2600,7 @@
     ].map(([n, c, col]) => barRow(n, c, sTotal, col)).join('');
 
     const grades = {};
-    visits.forEach(v => { if (v.grade) grades[v.grade] = (grades[v.grade] || 0) + 1; });
+    scope.forEach(v => { if (v.grade) grades[v.grade] = (grades[v.grade] || 0) + 1; });
     const gTotal = Math.max(1, Math.max(...Object.values(grades), 1));
     const gEntries = Object.entries(grades).sort((a,b) => b[1] - a[1]);
     document.getElementById('chart-grade').innerHTML = gEntries.length
@@ -2301,7 +2608,7 @@
       : '<p style="color: var(--text-muted); font-size: 13px;">ยังไม่มีข้อมูล</p>';
 
     const risks = {};
-    visits.forEach(v => {
+    scope.forEach(v => {
       if (v.risk_area && Array.isArray(v.risk_area)) {
         v.risk_area.forEach(r => { risks[r] = (risks[r] || 0) + 1; });
       }
@@ -2312,22 +2619,49 @@
       ? rEntries.map(([n, c]) => barRow(n, c, rTotal, '#FF3B5C')).join('')
       : '<p style="color: var(--text-muted); font-size: 13px;">ยังไม่มีข้อมูล</p>';
 
-    const teachers = new Set(visits.map(v => v.teacher_name).filter(Boolean));
-    const lowIncome = visits.filter(v => {
+    // Per-semester chart (ใช้ visits ทั้งหมด ไม่ขึ้นกับ filter)
+    const semesters = {};
+    visits.forEach(v => {
+      const key = v.semester || '— ไม่ระบุ —';
+      semesters[key] = (semesters[key] || 0) + 1;
+    });
+    const semTotal = Math.max(1, Math.max(...Object.values(semesters), 1));
+    const semEntries = Object.entries(semesters).sort((a, b) => {
+      if (a[0] === '— ไม่ระบุ —') return 1;
+      if (b[0] === '— ไม่ระบุ —') return -1;
+      const [ta, ya] = a[0].split('/').map(Number);
+      const [tb, yb] = b[0].split('/').map(Number);
+      if (yb !== ya) return yb - ya;
+      return tb - ta;
+    });
+    const currentSem = getCurrentSemester();
+    document.getElementById('chart-semester').innerHTML = semEntries.length
+      ? semEntries.map(([n, c]) => {
+          const isCurrent = n === currentSem;
+          const label = n === '— ไม่ระบุ —' ? n : `ภาคเรียนที่ ${n}${isCurrent ? ' ⚡' : ''}`;
+          return barRow(label, c, semTotal, isCurrent ? '#B8FF00' : '#5DC9FF');
+        }).join('')
+      : '<p style="color: var(--text-muted); font-size: 13px;">ยังไม่มีข้อมูล</p>';
+
+    const teachers = new Set(scope.map(v => v.teacher_name).filter(Boolean));
+    const lowIncome = scope.filter(v => {
       const total = (parseFloat(v.father_income) || 0) + (parseFloat(v.mother_income) || 0);
       return total > 0 && total < 15000;
     }).length;
     const familyStatus = {};
-    visits.forEach(v => { if (v.family_status) familyStatus[v.family_status] = (familyStatus[v.family_status] || 0) + 1; });
-    const withGPS = visits.filter(v => v.lat && v.lng).length;
+    scope.forEach(v => { if (v.family_status) familyStatus[v.family_status] = (familyStatus[v.family_status] || 0) + 1; });
+    const withGPS = scope.filter(v => v.lat && v.lng).length;
     document.getElementById('chart-extra').innerHTML = `
+      <div class="detail-row"><div class="lbl">ขอบเขตข้อมูล</div><div class="val" style="color: var(--info);">${scopeLabel}</div></div>
+      <div class="detail-row"><div class="lbl">การเยี่ยมทั้งหมด</div><div class="val">${scope.length}</div></div>
       <div class="detail-row"><div class="lbl">จำนวนครูที่เยี่ยม</div><div class="val">${teachers.size}</div></div>
       <div class="detail-row"><div class="lbl">ครอบครัวรายได้น้อย (&lt; ฿15,000)</div><div class="val">${lowIncome}</div></div>
-      <div class="detail-row"><div class="lbl">การเยี่ยมทั้งหมด</div><div class="val">${visits.length}</div></div>
       <div class="detail-row"><div class="lbl">บิดามารดาแยกกัน/หย่าร้าง</div><div class="val">${(familyStatus['บิดามารดาแยกกันอยู่'] || 0) + (familyStatus['บิดามารดาหย่าร้าง'] || 0)}</div></div>
       <div class="detail-row"><div class="lbl">มีพิกัด GPS</div><div class="val">${withGPS}</div></div>
     `;
   }
+
+  document.getElementById('report-filter-semester').addEventListener('change', renderReport);
 
   function barRow(name, count, total, color) {
     const pct = Math.round((count / total) * 100);
@@ -2362,6 +2696,43 @@
   // ===== INIT =====
   loadVisits();
   renderDashboard();
+  checkBackupReminder();
+
+  // ===== BACKUP REMINDER =====
+  function checkBackupReminder() {
+    if (visits.length === 0) return; // ไม่มีข้อมูลก็ไม่ต้องเตือน
+    const lastBackup = localStorage.getItem(BACKUP_DATE_KEY);
+    const dismissedUntil = localStorage.getItem('backup-reminder-dismissed-until');
+    if (dismissedUntil && new Date(dismissedUntil) > new Date()) return;
+
+    let daysSince = null;
+    if (lastBackup) {
+      const days = (Date.now() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24);
+      daysSince = Math.floor(days);
+      if (daysSince < BACKUP_REMINDER_DAYS) return; // ยังไม่ถึงเวลาเตือน
+    }
+
+    const banner = document.getElementById('backup-reminder');
+    const detail = document.getElementById('backup-reminder-detail');
+    if (lastBackup) {
+      detail.textContent = `สำรองข้อมูลครั้งล่าสุดเมื่อ ${daysSince} วันที่แล้ว · มีข้อมูล ${visits.length} รายการ ควรสำรองใหม่`;
+    } else {
+      detail.textContent = `คุณยังไม่เคยสำรองข้อมูลเลย · มีข้อมูล ${visits.length} รายการ แนะนำให้สำรองทันที`;
+    }
+    banner.classList.add('show');
+  }
+
+  function dismissBackupReminder() {
+    hideBackupReminder();
+    // เลื่อนเตือนไปอีก 7 วัน
+    const next = new Date();
+    next.setDate(next.getDate() + 7);
+    localStorage.setItem('backup-reminder-dismissed-until', next.toISOString());
+  }
+
+  function hideBackupReminder() {
+    document.getElementById('backup-reminder').classList.remove('show');
+  }
 
   // ===== PWA: Service Worker & Install =====
   if ('serviceWorker' in navigator) {
