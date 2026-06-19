@@ -2,8 +2,26 @@
 <html lang="th">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>ระบบบันทึกการเยี่ยมบ้าน · โรงเรียนบ้านมาบฟัทอง</title>
+
+<!-- PWA: Manifest & Theme -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0A0E0A">
+<meta name="description" content="ระบบบันทึกการเยี่ยมบ้านนักเรียน โรงเรียนบ้านมาบฟัทอง">
+
+<!-- PWA: iOS (Apple) -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="เยี่ยมบ้าน">
+<link rel="apple-touch-icon" href="./apple-touch-icon.png">
+
+<!-- Favicon -->
+<link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+<link rel="shortcut icon" href="./icon-192.png">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -74,26 +92,32 @@
 
   .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
   .brand-logo {
-    width: 44px; height: 44px;
-    background: var(--neon);
+    width: 48px; height: 48px;
+    background: #fff;
     border-radius: 12px;
     display: grid; place-items: center;
-    font-weight: 900;
-    font-size: 18px;
-    color: var(--bg);
-    box-shadow: var(--glow);
     flex-shrink: 0;
     position: relative;
+    overflow: hidden;
+    border: 2px solid var(--neon);
+    box-shadow: 0 0 16px rgba(184, 255, 0, 0.4);
+    padding: 3px;
+  }
+  .brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
   }
   .brand-logo::after {
     content: '';
     position: absolute;
-    inset: -2px;
+    inset: -3px;
     border-radius: 14px;
     background: linear-gradient(135deg, var(--neon), transparent);
     z-index: -1;
     opacity: 0.5;
-    filter: blur(8px);
+    filter: blur(10px);
   }
   .brand-text { min-width: 0; }
   .brand-text h1 {
@@ -1156,13 +1180,84 @@
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 5px; }
   ::-webkit-scrollbar-thumb:hover { background: var(--neon-dim); }
+
+  /* ===== INSTALL BANNER ===== */
+  .install-banner {
+    position: fixed;
+    bottom: 100px;
+    left: 16px;
+    right: 16px;
+    max-width: 480px;
+    margin: 0 auto;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    padding: 16px;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.5), var(--glow);
+    z-index: 90;
+    display: none;
+    align-items: center;
+    gap: 14px;
+    transform: translateY(140%);
+    transition: transform 0.4s cubic-bezier(.2,.9,.3,1.2);
+  }
+  .install-banner.show { display: flex; transform: translateY(0); }
+  .install-banner-icon {
+    width: 44px; height: 44px;
+    background: var(--neon);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+    color: var(--bg);
+    box-shadow: var(--glow);
+  }
+  .install-banner-text { flex: 1; min-width: 0; }
+  .install-banner-text strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .install-banner-text span {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+  .install-banner-actions { display: flex; gap: 8px; flex-shrink: 0; }
+  .install-banner-actions button {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 8px 14px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-size: 12px;
+    font-weight: 500;
+    transition: all 0.15s;
+  }
+  .install-banner-actions button:hover { color: var(--text); border-color: var(--border-strong); }
+  .install-banner-actions .install-yes {
+    background: var(--neon);
+    color: var(--bg);
+    border-color: var(--neon);
+    font-weight: 700;
+  }
+  .install-banner-actions .install-yes:hover {
+    background: var(--neon-soft);
+    box-shadow: var(--glow);
+  }
+
+  @media (max-width: 720px) {
+    .install-banner { bottom: 90px; }
+  }
 </style>
 </head>
 <body>
 
 <header class="topbar">
   <div class="brand">
-    <div class="brand-logo">บฟ</div>
+    <div class="brand-logo"><img src="./logo.png" alt="โลโก้โรงเรียนบ้านมาบฟัทอง"></div>
     <div class="brand-text">
       <h1>โรงเรียนบ้านมาบฟัทอง</h1>
       <p>ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี · ระบบเยี่ยมบ้านนักเรียน</p>
@@ -1711,6 +1806,21 @@
   <span id="toast-msg">บันทึกเรียบร้อย</span>
 </div>
 
+<!-- PWA Install Banner -->
+<div class="install-banner" id="install-banner">
+  <div class="install-banner-icon">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  </div>
+  <div class="install-banner-text">
+    <strong>ติดตั้งเป็นแอป</strong>
+    <span>เปิดใช้งานสะดวก ไม่ต้องพิมพ์ URL ทุกครั้ง</span>
+  </div>
+  <div class="install-banner-actions">
+    <button onclick="dismissInstall()">ไม่ใช่ตอนนี้</button>
+    <button class="install-yes" onclick="installApp()">ติดตั้ง</button>
+  </div>
+</div>
+
 <input type="file" id="import-file" accept=".json" style="display:none">
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
@@ -2221,6 +2331,68 @@
   // ===== INIT =====
   loadVisits();
   renderDashboard();
+
+  // ===== PWA: Service Worker & Install =====
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js')
+        .then((reg) => console.log('SW registered:', reg.scope))
+        .catch((err) => console.log('SW registration failed:', err));
+    });
+  }
+
+  // Capture install prompt for Android/Chrome
+  let deferredPrompt = null;
+  const installBanner = document.getElementById('install-banner');
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    // Don't show if user already dismissed
+    if (localStorage.getItem('install-dismissed') === '1') return;
+    if (localStorage.getItem('app-installed') === '1') return;
+    setTimeout(() => installBanner.classList.add('show'), 2000);
+  });
+
+  function installApp() {
+    if (!deferredPrompt) {
+      // iOS or unsupported - show manual instructions
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      if (isIOS) {
+        alert('วิธีติดตั้งบน iPhone/iPad:\n\n1. กดปุ่ม Share (สี่เหลี่ยมมีลูกศรขึ้น) ด้านล่างของ Safari\n2. เลื่อนลง เลือก "Add to Home Screen" หรือ "เพิ่มไปยังหน้าจอโฮม"\n3. กด Add\n\nแอปจะปรากฏบนหน้าจอเหมือนแอปทั่วไป');
+      } else {
+        alert('ในเบราว์เซอร์นี้ ให้กดเมนู (จุดสามจุด) ⋮ → "Install app" หรือ "ติดตั้งแอป"');
+      }
+      return;
+    }
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then((choice) => {
+      if (choice.outcome === 'accepted') {
+        localStorage.setItem('app-installed', '1');
+        showToast('ติดตั้งสำเร็จ');
+      }
+      deferredPrompt = null;
+      installBanner.classList.remove('show');
+    });
+  }
+
+  function dismissInstall() {
+    installBanner.classList.remove('show');
+    localStorage.setItem('install-dismissed', '1');
+  }
+
+  window.addEventListener('appinstalled', () => {
+    localStorage.setItem('app-installed', '1');
+    installBanner.classList.remove('show');
+    showToast('ติดตั้งแอปเรียบร้อย');
+  });
+
+  // For iOS: show banner if not in standalone mode
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone || window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone && !localStorage.getItem('install-dismissed') && !localStorage.getItem('app-installed')) {
+    setTimeout(() => installBanner.classList.add('show'), 3000);
+  }
 </script>
 </body>
 </html>
