@@ -1160,6 +1160,33 @@
   }
   footer.foot strong { color: var(--neon); font-weight: 600; }
 
+  .credit {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    box-shadow: var(--glow-soft);
+  }
+  .credit-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding-right: 10px;
+    border-right: 1px solid var(--border-strong);
+  }
+  .credit-name {
+    color: var(--neon);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.01em;
+  }
+
   @media (max-width: 720px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .stat-num { font-size: 28px; }
@@ -1786,6 +1813,10 @@
 <footer class="foot">
   <p><strong>โรงเรียนบ้านมาบฟัทอง</strong> · ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี</p>
   <p style="margin-top: 6px; opacity: 0.7;">ระบบบันทึกการเยี่ยมบ้านนักเรียน v2.0 · ตามแนวทางกระทรวงศึกษาธิการ</p>
+  <div class="credit">
+    <span class="credit-label">ผู้จัดทำ</span>
+    <span class="credit-name">ณรงค์ ปรีดารัตน์</span>
+  </div>
 </footer>
 
 <!-- Modal -->
