@@ -1,0 +1,2226 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ระบบบันทึกการเยี่ยมบ้าน · โรงเรียนบ้านมาบฟัทอง</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<style>
+  :root {
+    --bg: #0A0E0A;
+    --bg-2: #0E130E;
+    --surface: #131813;
+    --surface-2: #1B221B;
+    --surface-3: #232C23;
+    --border: rgba(184, 255, 0, 0.12);
+    --border-strong: rgba(184, 255, 0, 0.25);
+    --border-subtle: rgba(255, 255, 255, 0.06);
+    --neon: #B8FF00;
+    --neon-soft: #C6FF3D;
+    --neon-dim: #8FC900;
+    --text: #ECF5EC;
+    --text-muted: #8B9B8B;
+    --text-dim: #5A6B5A;
+    --danger: #FF3B5C;
+    --warning: #FFC93D;
+    --info: #5DC9FF;
+    --glow: 0 0 20px rgba(184, 255, 0, 0.4);
+    --glow-soft: 0 0 12px rgba(184, 255, 0, 0.2);
+    --glow-strong: 0 0 30px rgba(184, 255, 0, 0.55), 0 0 60px rgba(184, 255, 0, 0.25);
+    --shadow-elev: 0 4px 24px rgba(0,0,0,0.4);
+    --radius-sm: 8px;
+    --radius: 14px;
+    --radius-lg: 20px;
+    --radius-full: 999px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Kanit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-weight: 400;
+    line-height: 1.55;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse 1200px 600px at 50% -200px, rgba(184, 255, 0, 0.08), transparent 60%),
+      radial-gradient(ellipse 800px 400px at 100% 100%, rgba(93, 201, 255, 0.04), transparent 60%);
+    background-attachment: fixed;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header.topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    background: rgba(10, 14, 10, 0.75);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+  .brand-logo {
+    width: 44px; height: 44px;
+    background: var(--neon);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-weight: 900;
+    font-size: 18px;
+    color: var(--bg);
+    box-shadow: var(--glow);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .brand-logo::after {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--neon), transparent);
+    z-index: -1;
+    opacity: 0.5;
+    filter: blur(8px);
+  }
+  .brand-text { min-width: 0; }
+  .brand-text h1 {
+    font-size: 15px; font-weight: 700;
+    color: var(--text);
+    letter-spacing: 0.01em;
+    line-height: 1.2;
+  }
+  .brand-text p {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 16px;
+    background: rgba(184, 255, 0, 0.08);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--neon);
+    flex-shrink: 0;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    background: var(--neon);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--neon);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* ===== NAVIGATION ===== */
+  .nav-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px 0;
+    position: sticky;
+    top: 77px;
+    z-index: 40;
+    pointer-events: none;
+  }
+  .nav-pill {
+    pointer-events: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(19, 24, 19, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+    padding: 6px;
+    box-shadow: var(--shadow-elev);
+  }
+  .nav-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Kanit', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    padding: 10px 18px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(.4,.0,.2,1);
+    display: inline-flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .nav-btn .nav-icon {
+    width: 18px; height: 18px;
+    stroke-width: 2;
+  }
+  .nav-btn:hover {
+    color: var(--text);
+    background: rgba(184, 255, 0, 0.08);
+  }
+  .nav-btn.active {
+    background: var(--neon);
+    color: var(--bg);
+    font-weight: 700;
+    box-shadow: var(--glow);
+  }
+
+  /* Mobile bottom nav */
+  @media (max-width: 720px) {
+    .nav-wrap {
+      position: fixed;
+      bottom: 16px;
+      top: auto;
+      left: 0; right: 0;
+      padding: 0 16px;
+    }
+    .nav-pill {
+      width: 100%;
+      justify-content: space-between;
+      padding: 6px;
+    }
+    .nav-btn {
+      padding: 10px 12px;
+      font-size: 11px;
+      flex: 1;
+      justify-content: center;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .nav-btn .nav-icon { width: 20px; height: 20px; }
+    .nav-btn .nav-text { font-size: 10px; }
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    padding: 32px 28px 100px;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  @media (max-width: 720px) {
+    main { padding: 24px 16px 120px; }
+  }
+
+  .view { display: none; }
+  .view.active {
+    display: block;
+    animation: fadeup 0.35s cubic-bezier(.2,.9,.3,1.0);
+  }
+  @keyframes fadeup {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    background: linear-gradient(135deg, var(--surface), var(--surface-2));
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 40px 36px;
+    margin-bottom: 28px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -100px; right: -100px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(184, 255, 0, 0.18), transparent 60%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--neon);
+    margin-bottom: 16px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    width: 24px; height: 1px;
+    background: var(--neon);
+  }
+  .hero h2 {
+    font-size: 48px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero h2 .accent {
+    color: var(--neon);
+    text-shadow: 0 0 30px rgba(184, 255, 0, 0.4);
+  }
+  .hero p {
+    color: var(--text-muted);
+    font-size: 16px;
+    max-width: 580px;
+    margin-bottom: 24px;
+    position: relative;
+    z-index: 1;
+  }
+  .hero-actions {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    position: relative; z-index: 1;
+  }
+
+  @media (max-width: 720px) {
+    .hero { padding: 28px 22px; }
+    .hero h2 { font-size: 32px; }
+  }
+
+  /* ===== BUTTONS ===== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    padding: 12px 22px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-strong);
+    background: var(--surface-2);
+    color: var(--text);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .btn:hover {
+    background: var(--surface-3);
+    border-color: var(--neon-dim);
+    transform: translateY(-1px);
+  }
+  .btn-primary {
+    background: var(--neon);
+    color: var(--bg);
+    border-color: var(--neon);
+    font-weight: 700;
+    box-shadow: var(--glow);
+  }
+  .btn-primary:hover {
+    background: var(--neon-soft);
+    box-shadow: var(--glow-strong);
+    border-color: var(--neon-soft);
+  }
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+  }
+  .btn-danger {
+    background: transparent;
+    border-color: rgba(255, 59, 92, 0.4);
+    color: var(--danger);
+  }
+  .btn-danger:hover {
+    background: rgba(255, 59, 92, 0.1);
+    border-color: var(--danger);
+  }
+  .btn-sm { padding: 8px 16px; font-size: 12px; }
+  .btn .ic { width: 16px; height: 16px; stroke-width: 2.2; }
+
+  /* ===== STATS ===== */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--neon);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .stat-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-2px);
+  }
+  .stat-card:hover::before { opacity: 1; }
+
+  .stat-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    display: grid; place-items: center;
+    margin-bottom: 14px;
+    background: rgba(184, 255, 0, 0.1);
+    color: var(--neon);
+  }
+  .stat-card.c2 .stat-icon { background: rgba(93, 201, 255, 0.1); color: var(--info); }
+  .stat-card.c3 .stat-icon { background: rgba(255, 201, 61, 0.1); color: var(--warning); }
+  .stat-card.c4 .stat-icon { background: rgba(184, 255, 0, 0.1); color: var(--neon); }
+
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 500;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  .stat-num {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--text);
+    letter-spacing: -0.02em;
+    font-family: 'Kanit', sans-serif;
+  }
+  .stat-card.c1 .stat-num { color: var(--neon); }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+
+  /* ===== SECTIONS ===== */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .section-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .section-head h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .section-head .badge {
+    background: rgba(184, 255, 0, 0.12);
+    color: var(--neon);
+    padding: 3px 10px;
+    border-radius: var(--radius-full);
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .section-body { padding: 24px; }
+
+  /* ===== FORM SECTIONS ===== */
+  .form-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    overflow: hidden;
+  }
+  .form-section-head {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    background: linear-gradient(90deg, rgba(184, 255, 0, 0.04), transparent);
+  }
+  .form-section-num {
+    width: 32px; height: 32px;
+    background: var(--neon);
+    color: var(--bg);
+    border-radius: 10px;
+    display: grid; place-items: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 14px;
+    box-shadow: var(--glow-soft);
+  }
+  .form-section-head h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .form-section-head p {
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+  .form-section-body { padding: 24px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+  }
+  .form-grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .form-grid.cols-4 { grid-template-columns: repeat(4, 1fr); }
+  .field-full { grid-column: 1 / -1; }
+  @media (max-width: 720px) {
+    .form-grid, .form-grid.cols-3, .form-grid.cols-4 { grid-template-columns: 1fr; }
+  }
+
+  .field { display: flex; flex-direction: column; }
+  .field label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    letter-spacing: 0.02em;
+  }
+  .field label .req { color: var(--neon); margin-left: 2px; }
+
+  .field input,
+  .field select,
+  .field textarea {
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 400;
+    padding: 12px 14px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: all 0.15s;
+    width: 100%;
+  }
+  .field input:focus,
+  .field select:focus,
+  .field textarea:focus {
+    border-color: var(--neon);
+    box-shadow: 0 0 0 3px rgba(184, 255, 0, 0.15);
+    background: var(--bg-2);
+  }
+  .field input::placeholder, .field textarea::placeholder { color: var(--text-dim); }
+  .field textarea { resize: vertical; min-height: 84px; line-height: 1.5; }
+  .field select {
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B9B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 16px;
+    padding-right: 36px;
+  }
+  .field select option { background: var(--bg); color: var(--text); }
+
+  /* Field with inline action button */
+  .field-with-action {
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+  }
+  .field-with-action input { flex: 1; }
+  .field-with-action button {
+    background: var(--surface-2);
+    border: 1px solid var(--border-strong);
+    color: var(--neon);
+    padding: 0 14px;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .field-with-action button:hover {
+    background: var(--neon);
+    color: var(--bg);
+  }
+  .field-with-action button .ic { width: 14px; height: 14px; }
+
+  /* Check / radio chips */
+  .check-group {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 10px;
+  }
+  .check-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .check-item:hover {
+    border-color: var(--border-strong);
+    color: var(--text);
+  }
+  .check-item input {
+    appearance: none;
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .check-item input:checked {
+    background: var(--neon);
+    border-color: var(--neon);
+  }
+  .check-item input:checked::after {
+    content: '';
+    position: absolute;
+    top: 1px; left: 4px;
+    width: 4px; height: 8px;
+    border: solid var(--bg);
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+  }
+  .check-item.checked {
+    background: rgba(184, 255, 0, 0.08);
+    border-color: var(--neon);
+    color: var(--text);
+  }
+
+  .radio-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .radio-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .radio-item:hover { color: var(--text); border-color: var(--border-strong); }
+  .radio-item input {
+    appearance: none;
+    width: 16px; height: 16px;
+    border: 1.5px solid var(--text-dim);
+    border-radius: 50%;
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .radio-item input:checked {
+    border-color: var(--neon);
+  }
+  .radio-item input:checked::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    background: var(--neon);
+    border-radius: 50%;
+    box-shadow: 0 0 6px var(--neon);
+  }
+  .radio-item.selected {
+    background: rgba(184, 255, 0, 0.1);
+    border-color: var(--neon);
+    color: var(--neon);
+    font-weight: 600;
+  }
+
+  /* ===== TOOLBAR ===== */
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 220px;
+    padding: 12px 16px 12px 42px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-full);
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    outline: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B9B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3ccircle cx='11' cy='11' r='8'%3e%3c/circle%3e%3cline x1='21' y1='21' x2='16.65' y2='16.65'%3e%3c/line%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: 14px center;
+    background-size: 16px;
+    transition: all 0.15s;
+  }
+  .search-input:focus {
+    border-color: var(--neon);
+    box-shadow: 0 0 0 3px rgba(184, 255, 0, 0.15);
+  }
+  .filter-select {
+    padding: 12px 36px 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: var(--radius-full);
+    font-family: 'Kanit', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%238B9B8B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    background-size: 16px;
+  }
+  .filter-select option { background: var(--bg); }
+
+  /* ===== VISIT CARDS ===== */
+  .visit-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 18px;
+  }
+  .visit-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(.2,.9,.3,1);
+    position: relative;
+  }
+  .visit-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--neon);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .visit-card:hover {
+    border-color: var(--border-strong);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.4), var(--glow-soft);
+  }
+  .visit-card:hover::before { transform: scaleX(1); }
+
+  .visit-card-head {
+    padding: 18px 20px 12px;
+    display: flex; justify-content: space-between; align-items: flex-start;
+    gap: 10px;
+  }
+  .visit-card-head .name {
+    font-weight: 600;
+    font-size: 16px;
+    color: var(--text);
+    letter-spacing: -0.01em;
+  }
+  .visit-card-head .id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 2px;
+  }
+  .visit-card-head .grade {
+    background: rgba(184, 255, 0, 0.1);
+    color: var(--neon);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    border: 1px solid var(--border-strong);
+  }
+
+  .visit-card-body { padding: 4px 20px 16px; }
+  .visit-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 6px 0;
+    font-size: 13px;
+  }
+  .visit-row .lbl { color: var(--text-muted); font-size: 12px; }
+  .visit-row .val { color: var(--text); font-weight: 500; }
+
+  .screen-tag {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: var(--radius-full);
+    border: 1px solid;
+  }
+  .screen-tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .screen-normal { background: rgba(184, 255, 0, 0.1); border-color: rgba(184, 255, 0, 0.3); color: var(--neon); }
+  .screen-risk { background: rgba(255, 201, 61, 0.1); border-color: rgba(255, 201, 61, 0.3); color: var(--warning); }
+  .screen-problem { background: rgba(255, 59, 92, 0.1); border-color: rgba(255, 59, 92, 0.3); color: var(--danger); }
+
+  .visit-card-foot {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border);
+    display: flex; gap: 8px; justify-content: flex-end;
+    background: var(--bg-2);
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 60px 24px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg-2);
+  }
+  .empty-icon {
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: rgba(184, 255, 0, 0.1);
+    color: var(--neon);
+    display: grid; place-items: center;
+    margin: 0 auto 16px;
+  }
+  .empty h3 { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .empty p { color: var(--text-muted); margin-bottom: 20px; font-size: 14px; }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(5, 8, 5, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    max-width: 720px;
+    width: 100%;
+    margin: auto;
+    overflow: hidden;
+    animation: zoom 0.25s cubic-bezier(.2,.9,.3,1.2);
+  }
+  @keyframes zoom { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+  .modal-head {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+    background: linear-gradient(90deg, rgba(184, 255, 0, 0.08), transparent);
+  }
+  .modal-head h3 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .modal-close {
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 32px; height: 32px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: grid; place-items: center;
+  }
+  .modal-close:hover { background: var(--surface-3); color: var(--text); }
+  .modal-body { padding: 24px; max-height: 70vh; overflow-y: auto; }
+  .modal-body::-webkit-scrollbar { width: 6px; }
+  .modal-body::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 3px; }
+
+  .detail-section-label {
+    background: rgba(184, 255, 0, 0.06);
+    color: var(--neon);
+    padding: 6px 12px;
+    margin: 14px 0 8px;
+    font-weight: 600;
+    font-size: 12px;
+    border-radius: var(--radius-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: 'JetBrains Mono', monospace;
+  }
+  .detail-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 14px;
+    gap: 16px;
+  }
+  .detail-row:last-child { border-bottom: none; }
+  .detail-row .lbl { font-weight: 500; color: var(--text-muted); font-size: 13px; }
+  .detail-row .val { color: var(--text); }
+  @media (max-width: 540px) {
+    .detail-row { grid-template-columns: 1fr; gap: 2px; }
+  }
+
+  /* ===== TOAST ===== */
+  .toast {
+    position: fixed;
+    bottom: 100px;
+    right: 24px;
+    background: var(--neon);
+    color: var(--bg);
+    padding: 14px 22px;
+    border-radius: var(--radius-full);
+    font-weight: 600;
+    font-size: 14px;
+    z-index: 200;
+    box-shadow: var(--glow-strong);
+    transform: translateY(140%);
+    transition: transform 0.4s cubic-bezier(.2,.9,.3,1.4);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .toast.show { transform: translateY(0); }
+
+  /* ===== MAP ===== */
+  .map-toolbar {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+    align-items: center;
+  }
+  .map-stats-bar {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    margin-bottom: 18px;
+    padding: 12px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-full);
+  }
+  .map-stat-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 12px;
+    font-size: 13px;
+    border-radius: var(--radius-full);
+    background: var(--bg-2);
+    border: 1px solid var(--border-subtle);
+  }
+  .map-stat-chip .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    box-shadow: 0 0 6px currentColor;
+  }
+  .map-stat-chip strong { font-weight: 700; }
+
+  .map-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    height: 640px;
+    position: relative;
+  }
+  #leaflet-map {
+    width: 100%;
+    height: 100%;
+    background: var(--bg);
+  }
+  /* Leaflet style overrides */
+  .leaflet-container {
+    background: var(--bg) !important;
+    font-family: 'Kanit', sans-serif !important;
+  }
+  .leaflet-popup-content-wrapper {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
+  }
+  .leaflet-popup-tip {
+    background: var(--surface) !important;
+    border: 1px solid var(--border-strong) !important;
+  }
+  .leaflet-popup-content { margin: 16px !important; font-size: 13px !important; }
+  .leaflet-popup-close-button { color: var(--text-muted) !important; }
+  .leaflet-control-zoom a {
+    background: var(--surface) !important;
+    color: var(--text) !important;
+    border: 1px solid var(--border) !important;
+  }
+  .leaflet-control-zoom a:hover {
+    background: var(--surface-2) !important;
+    color: var(--neon) !important;
+  }
+  .leaflet-control-attribution {
+    background: rgba(19, 24, 19, 0.8) !important;
+    color: var(--text-dim) !important;
+    backdrop-filter: blur(8px);
+  }
+  .leaflet-control-attribution a { color: var(--neon-dim) !important; }
+  .custom-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+  .marker-pin {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 3px solid var(--bg);
+    box-shadow: 0 0 12px currentColor, 0 0 24px rgba(0,0,0,0.5);
+    position: relative;
+  }
+  .marker-pin::after {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    background: radial-gradient(circle, currentColor, transparent 60%);
+    opacity: 0.4;
+    z-index: -1;
+    animation: marker-pulse 2.5s ease-in-out infinite;
+  }
+  @keyframes marker-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.6); opacity: 0; }
+  }
+  .marker-school {
+    background: var(--neon);
+    color: var(--neon);
+    width: 36px; height: 36px;
+    display: grid; place-items: center;
+    color: var(--bg);
+  }
+  .marker-school::after { color: var(--neon); }
+
+  .popup-card .pc-name {
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+    color: var(--text);
+  }
+  .popup-card .pc-grade {
+    color: var(--neon);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 10px;
+  }
+  .popup-card .pc-row {
+    display: flex; justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+    gap: 10px;
+  }
+  .popup-card .pc-row .l { color: var(--text-muted); }
+  .popup-card .pc-row .v { color: var(--text); font-weight: 500; }
+  .popup-card .pc-actions {
+    margin-top: 10px;
+    display: flex; gap: 6px;
+  }
+  .popup-card .pc-btn {
+    flex: 1;
+    background: var(--neon);
+    color: var(--bg);
+    border: none;
+    padding: 6px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+  }
+
+  @media (max-width: 720px) {
+    .map-container { height: 480px; }
+  }
+
+  /* ===== REPORT ===== */
+  .report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 18px;
+    margin-bottom: 24px;
+  }
+  @media (max-width: 900px) { .report-grid { grid-template-columns: 1fr; } }
+  .chart-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+  }
+  .chart-box h4 {
+    font-size: 14px;
+    margin-bottom: 18px;
+    color: var(--text);
+    font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .chart-box h4::before {
+    content: '';
+    width: 4px; height: 16px;
+    background: var(--neon);
+    border-radius: 2px;
+    box-shadow: var(--glow-soft);
+  }
+  .bar-row { margin-bottom: 14px; }
+  .bar-label {
+    display: flex; justify-content: space-between;
+    font-size: 13px;
+    margin-bottom: 6px;
+    color: var(--text);
+  }
+  .bar-label .ct { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+  .bar-track {
+    background: var(--bg);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--border-subtle);
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(.2,.9,.3,1);
+    background: var(--neon);
+    box-shadow: 0 0 8px currentColor;
+  }
+
+  /* Stats grid in report */
+  .stat-rows .detail-row { grid-template-columns: 1fr auto; }
+  .stat-rows .val { color: var(--neon); font-weight: 700; font-family: 'JetBrains Mono', monospace; }
+
+  /* ===== FOOTER ===== */
+  footer.foot {
+    text-align: center;
+    padding: 32px 24px;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 13px;
+    margin-top: 40px;
+  }
+  footer.foot strong { color: var(--neon); font-weight: 600; }
+
+  @media (max-width: 720px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .stat-num { font-size: 28px; }
+  }
+  @media (max-width: 480px) {
+    .stats-grid { grid-template-columns: 1fr; }
+  }
+
+  /* Print */
+  @media print {
+    header.topbar, .nav-wrap, .hero-actions, .toolbar, .visit-card-foot, .map-container, .map-toolbar, footer.foot { display: none; }
+    body { background: white; color: black; }
+    .section, .stat-card, .chart-box, .form-section { border: 1px solid #ccc; box-shadow: none; page-break-inside: avoid; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--neon-dim); }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-logo">บฟ</div>
+    <div class="brand-text">
+      <h1>โรงเรียนบ้านมาบฟัทอง</h1>
+      <p>ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี · ระบบเยี่ยมบ้านนักเรียน</p>
+    </div>
+  </div>
+  <div class="status-pill">
+    <span class="status-dot"></span>
+    <span>ออนไลน์</span>
+  </div>
+</header>
+
+<div class="nav-wrap">
+  <div class="nav-pill" role="tablist">
+    <button class="nav-btn active" data-view="dashboard">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>
+      <span class="nav-text">แดชบอร์ด</span>
+    </button>
+    <button class="nav-btn" data-view="add">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      <span class="nav-text">บันทึก</span>
+    </button>
+    <button class="nav-btn" data-view="list">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      <span class="nav-text">รายการ</span>
+    </button>
+    <button class="nav-btn" data-view="map">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>
+      <span class="nav-text">แผนที่</span>
+    </button>
+    <button class="nav-btn" data-view="report">
+      <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span class="nav-text">รายงาน</span>
+    </button>
+  </div>
+</div>
+
+<main>
+
+  <!-- ===== DASHBOARD ===== -->
+  <section class="view active" id="dashboard">
+    <div class="hero">
+      <div class="hero-eyebrow">SYSTEM v2.0 · ปีการศึกษา 2569</div>
+      <h2>เยี่ยมบ้านทุกคน<br><span class="accent">เข้าใจ ทุกครอบครัว</span></h2>
+      <p>ระบบบันทึกการเยี่ยมบ้านนักเรียนตามแนวทางกระทรวงศึกษาธิการ สำหรับครูและผู้บริหารโรงเรียนบ้านมาบฟัทอง พร้อมแผนที่ติดตามและรายงานเชิงสถิติ</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="switchView('add')">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          บันทึกการเยี่ยมใหม่
+        </button>
+        <button class="btn" onclick="switchView('map')">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/></svg>
+          ดูแผนที่
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card c1">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div class="stat-label">เยี่ยมบ้านทั้งหมด</div>
+        <div class="stat-num" id="stat-total">0</div>
+        <div class="stat-sub">ครอบครัว · ปีการศึกษานี้</div>
+      </div>
+      <div class="stat-card c2">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div class="stat-label">เยี่ยมเดือนนี้</div>
+        <div class="stat-num" id="stat-month">0</div>
+        <div class="stat-sub">ครั้ง · ภายใน 30 วัน</div>
+      </div>
+      <div class="stat-card c3">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        </div>
+        <div class="stat-label">ต้องติดตาม</div>
+        <div class="stat-num" id="stat-risk">0</div>
+        <div class="stat-sub">กลุ่มเสี่ยง + กลุ่มมีปัญหา</div>
+      </div>
+      <div class="stat-card c4">
+        <div class="stat-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        </div>
+        <div class="stat-label">กลุ่มปกติ</div>
+        <div class="stat-num" id="stat-normal">0</div>
+        <div class="stat-sub">คน · ผ่านการคัดกรอง</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-head">
+        <h3>การเยี่ยมล่าสุด</h3>
+        <button class="btn btn-sm btn-ghost" onclick="switchView('list')">ดูทั้งหมด →</button>
+      </div>
+      <div class="section-body" id="recent-list"></div>
+    </div>
+  </section>
+
+  <!-- ===== ADD ===== -->
+  <section class="view" id="add">
+    <div class="hero" style="padding: 28px 32px;">
+      <div class="hero-eyebrow">FORM · ตามแบบกระทรวงศึกษาธิการ</div>
+      <h2 style="font-size: 36px;">บันทึก<span class="accent">การเยี่ยมบ้าน</span></h2>
+      <p>กรอกข้อมูลตามแบบบันทึก 6 ส่วน · ช่องที่มี <span style="color: var(--neon); font-weight: 600;">*</span> จำเป็นต้องกรอก</p>
+    </div>
+
+    <form id="visit-form">
+
+      <!-- Section 1 -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">01</div>
+          <div>
+            <h3>ข้อมูลนักเรียน</h3>
+            <p>ข้อมูลทั่วไปและที่อยู่ปัจจุบัน</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid cols-3">
+            <div class="field" style="grid-column: span 2;">
+              <label>ชื่อ-นามสกุล <span class="req">*</span></label>
+              <input type="text" name="student_name" required placeholder="เช่น เด็กชายสมชาย ใจดี">
+            </div>
+            <div class="field">
+              <label>เลขประจำตัวนักเรียน <span class="req">*</span></label>
+              <input type="text" name="student_id" required placeholder="00000">
+            </div>
+            <div class="field">
+              <label>ระดับชั้น <span class="req">*</span></label>
+              <select name="grade" required>
+                <option value="">-- เลือกระดับชั้น --</option>
+                <option>อนุบาล 1</option><option>อนุบาล 2</option><option>อนุบาล 3</option>
+                <option>ประถมศึกษาปีที่ 1</option><option>ประถมศึกษาปีที่ 2</option>
+                <option>ประถมศึกษาปีที่ 3</option><option>ประถมศึกษาปีที่ 4</option>
+                <option>ประถมศึกษาปีที่ 5</option><option>ประถมศึกษาปีที่ 6</option>
+                <option>มัธยมศึกษาปีที่ 1</option><option>มัธยมศึกษาปีที่ 2</option><option>มัธยมศึกษาปีที่ 3</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>ห้อง</label>
+              <input type="text" name="room" placeholder="เช่น 1, 2, 3">
+            </div>
+            <div class="field">
+              <label>เพศ</label>
+              <select name="gender">
+                <option value="">--</option>
+                <option>ชาย</option><option>หญิง</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>วันเกิด</label>
+              <input type="date" name="birthdate">
+            </div>
+            <div class="field">
+              <label>เลขบัตรประชาชน</label>
+              <input type="text" name="citizen_id" placeholder="0-0000-00000-00-0">
+            </div>
+            <div class="field">
+              <label>เบอร์โทรนักเรียน</label>
+              <input type="text" name="student_phone" placeholder="08x-xxx-xxxx">
+            </div>
+            <div class="field field-full">
+              <label>ที่อยู่ปัจจุบัน <span class="req">*</span></label>
+              <textarea name="address" required placeholder="บ้านเลขที่ หมู่ ตำบล อำเภอ จังหวัด รหัสไปรษณีย์"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Location -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">02</div>
+          <div>
+            <h3>ตำแหน่งที่ตั้งบ้าน</h3>
+            <p>พิกัด GPS สำหรับแสดงบนแผนที่ (สามารถดึงตำแหน่งปัจจุบันได้)</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>ละติจูด (Latitude)</label>
+              <input type="number" name="lat" step="0.000001" placeholder="12.815xxx">
+            </div>
+            <div class="field">
+              <label>ลองจิจูด (Longitude)</label>
+              <input type="number" name="lng" step="0.000001" placeholder="100.95xxxx">
+            </div>
+            <div class="field field-full">
+              <label>ดึงตำแหน่งปัจจุบัน</label>
+              <div class="field-with-action">
+                <input type="text" id="location-display" placeholder="กดปุ่มเพื่อดึงพิกัด GPS ของอุปกรณ์" readonly>
+                <button type="button" onclick="getCurrentLocation()">
+                  <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+                  ใช้ตำแหน่งปัจจุบัน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Family -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">03</div>
+          <div>
+            <h3>ข้อมูลครอบครัว</h3>
+            <p>ข้อมูลบิดา มารดา ผู้ปกครอง และพี่น้อง</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid cols-3">
+            <div class="field"><label>ชื่อบิดา</label><input type="text" name="father_name"></div>
+            <div class="field"><label>อาชีพบิดา</label><input type="text" name="father_job"></div>
+            <div class="field"><label>รายได้/เดือน (บาท)</label><input type="number" name="father_income"></div>
+            <div class="field"><label>ชื่อมารดา</label><input type="text" name="mother_name"></div>
+            <div class="field"><label>อาชีพมารดา</label><input type="text" name="mother_job"></div>
+            <div class="field"><label>รายได้/เดือน (บาท)</label><input type="number" name="mother_income"></div>
+            <div class="field"><label>ผู้ปกครอง (ถ้าไม่ใช่บิดามารดา)</label><input type="text" name="guardian_name"></div>
+            <div class="field"><label>ความสัมพันธ์</label><input type="text" name="guardian_relation" placeholder="เช่น ปู่ ย่า ลุง"></div>
+            <div class="field"><label>เบอร์โทรผู้ปกครอง</label><input type="text" name="guardian_phone"></div>
+            <div class="field"><label>จำนวนพี่น้อง (รวมตัวเอง)</label><input type="number" name="siblings" min="1"></div>
+            <div class="field"><label>นักเรียนเป็นบุตรคนที่</label><input type="number" name="birth_order" min="1"></div>
+            <div class="field">
+              <label>สถานภาพครอบครัว</label>
+              <select name="family_status">
+                <option value="">--</option>
+                <option>บิดามารดาอยู่ด้วยกัน</option>
+                <option>บิดามารดาแยกกันอยู่</option>
+                <option>บิดามารดาหย่าร้าง</option>
+                <option>บิดาเสียชีวิต</option>
+                <option>มารดาเสียชีวิต</option>
+                <option>บิดามารดาเสียชีวิตทั้งคู่</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: Home -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">04</div>
+          <div>
+            <h3>สภาพที่อยู่อาศัย</h3>
+            <p>ลักษณะบ้านและสิ่งอำนวยความสะดวก</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>ลักษณะที่อยู่อาศัย</label>
+              <select name="home_type">
+                <option value="">--</option>
+                <option>บ้านของตนเอง</option>
+                <option>บ้านเช่า</option>
+                <option>อาศัยอยู่กับญาติ</option>
+                <option>หอพัก/อพาร์ตเมนต์</option>
+                <option>อื่นๆ</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>สภาพแวดล้อมโดยรวม</label>
+              <select name="environment">
+                <option value="">--</option>
+                <option>ดีมาก</option><option>ดี</option><option>ปานกลาง</option><option>ควรปรับปรุง</option>
+              </select>
+            </div>
+            <div class="field field-full">
+              <label>สิ่งอำนวยความสะดวกในบ้าน</label>
+              <div class="check-group">
+                <label class="check-item"><input type="checkbox" name="facility" value="ห้องอ่านหนังสือ"> ห้อง/มุมอ่านหนังสือ</label>
+                <label class="check-item"><input type="checkbox" name="facility" value="โต๊ะเรียน"> โต๊ะเรียน</label>
+                <label class="check-item"><input type="checkbox" name="facility" value="คอมพิวเตอร์"> คอมพิวเตอร์/แท็บเล็ต</label>
+                <label class="check-item"><input type="checkbox" name="facility" value="อินเทอร์เน็ต"> อินเทอร์เน็ต</label>
+                <label class="check-item"><input type="checkbox" name="facility" value="ไฟฟ้า"> ไฟฟ้า</label>
+                <label class="check-item"><input type="checkbox" name="facility" value="น้ำประปา"> น้ำประปา</label>
+              </div>
+            </div>
+            <div class="field field-full">
+              <label>หมายเหตุเพิ่มเติม</label>
+              <textarea name="home_note" placeholder="บรรยายสภาพที่อยู่อาศัยเพิ่มเติม..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 5: Behavior -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">05</div>
+          <div>
+            <h3>พฤติกรรมและการเรียน</h3>
+            <p>พฤติกรรมที่บ้าน จุดเด่น และปัญหาที่พบ</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid">
+            <div class="field field-full">
+              <label>พฤติกรรมที่บ้าน</label>
+              <textarea name="behavior_home" placeholder="พฤติกรรมการใช้ชีวิตประจำวันที่บ้าน..."></textarea>
+            </div>
+            <div class="field">
+              <label>ความสามารถพิเศษ/จุดเด่น</label>
+              <textarea name="strength" placeholder="ความสามารถ ทักษะ หรือสิ่งที่นักเรียนถนัด..."></textarea>
+            </div>
+            <div class="field">
+              <label>ปัญหาที่พบ</label>
+              <textarea name="problem" placeholder="ปัญหาด้านการเรียน พฤติกรรม หรือสุขภาพ..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 6: Screening -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">06</div>
+          <div>
+            <h3>การคัดกรองนักเรียน (SDQ)</h3>
+            <p>ผลการคัดกรองและด้านที่พบความเสี่ยง</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="field" style="margin-bottom: 20px;">
+            <label>ผลการคัดกรอง <span class="req">*</span></label>
+            <div class="radio-row">
+              <label class="radio-item"><input type="radio" name="screening" value="ปกติ" required> กลุ่มปกติ</label>
+              <label class="radio-item"><input type="radio" name="screening" value="เสี่ยง"> กลุ่มเสี่ยง</label>
+              <label class="radio-item"><input type="radio" name="screening" value="ปัญหา"> กลุ่มมีปัญหา</label>
+            </div>
+          </div>
+          <div class="field">
+            <label>ด้านที่พบความเสี่ยง/ปัญหา</label>
+            <div class="check-group">
+              <label class="check-item"><input type="checkbox" name="risk_area" value="การเรียน"> ด้านการเรียน</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="สุขภาพ"> ด้านสุขภาพ</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="เศรษฐกิจ"> ด้านเศรษฐกิจ</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="ครอบครัว"> ด้านครอบครัว</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="ยาเสพติด"> ยาเสพติด</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="ความปลอดภัย"> ความปลอดภัย</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="พฤติกรรม"> พฤติกรรม-อารมณ์</label>
+              <label class="check-item"><input type="checkbox" name="risk_area" value="เพศ"> เพศ</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 7: Visit Info -->
+      <div class="form-section">
+        <div class="form-section-head">
+          <div class="form-section-num">07</div>
+          <div>
+            <h3>การเยี่ยมและข้อเสนอแนะ</h3>
+            <p>วันที่เยี่ยม ผู้เยี่ยม และแนวทางการช่วยเหลือ</p>
+          </div>
+        </div>
+        <div class="form-section-body">
+          <div class="form-grid">
+            <div class="field">
+              <label>วันที่เยี่ยม <span class="req">*</span></label>
+              <input type="date" name="visit_date" required>
+            </div>
+            <div class="field">
+              <label>ครูผู้เยี่ยม <span class="req">*</span></label>
+              <input type="text" name="teacher_name" required placeholder="ชื่อ-นามสกุลครูผู้เยี่ยม">
+            </div>
+            <div class="field">
+              <label>ผู้ให้ข้อมูล</label>
+              <input type="text" name="informant" placeholder="ผู้ที่ให้ข้อมูลขณะเยี่ยม">
+            </div>
+            <div class="field">
+              <label>ภาคเรียน/ปีการศึกษา</label>
+              <input type="text" name="semester" placeholder="เช่น 1/2569">
+            </div>
+            <div class="field field-full">
+              <label>สรุปผลการเยี่ยม</label>
+              <textarea name="visit_summary" placeholder="สรุปสิ่งที่พบจากการเยี่ยมครอบครัว..."></textarea>
+            </div>
+            <div class="field field-full">
+              <label>แนวทางการช่วยเหลือ/ส่งเสริม</label>
+              <textarea name="recommendation" placeholder="แนวทางที่โรงเรียนจะดำเนินการเพื่อช่วยเหลือนักเรียนต่อไป..."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 24px;">
+        <button type="submit" class="btn btn-primary" style="font-size: 15px; padding: 14px 28px;">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          บันทึกข้อมูล
+        </button>
+        <button type="reset" class="btn btn-ghost">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          ล้างฟอร์ม
+        </button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ===== LIST ===== -->
+  <section class="view" id="list">
+    <div class="hero" style="padding: 28px 32px;">
+      <div class="hero-eyebrow">DATABASE · รายการนักเรียน</div>
+      <h2 style="font-size: 36px;">รายการ<span class="accent">เยี่ยมบ้าน</span></h2>
+      <p>ค้นหา กรอง และจัดการข้อมูลการเยี่ยมบ้านทั้งหมด</p>
+    </div>
+
+    <div class="toolbar">
+      <input type="text" class="search-input" id="search" placeholder="ค้นหาชื่อนักเรียน เลขประจำตัว ครูผู้เยี่ยม...">
+      <select class="filter-select" id="filter-grade">
+        <option value="">ทุกชั้น</option>
+        <option>อนุบาล 1</option><option>อนุบาล 2</option><option>อนุบาล 3</option>
+        <option>ประถมศึกษาปีที่ 1</option><option>ประถมศึกษาปีที่ 2</option>
+        <option>ประถมศึกษาปีที่ 3</option><option>ประถมศึกษาปีที่ 4</option>
+        <option>ประถมศึกษาปีที่ 5</option><option>ประถมศึกษาปีที่ 6</option>
+        <option>มัธยมศึกษาปีที่ 1</option><option>มัธยมศึกษาปีที่ 2</option><option>มัธยมศึกษาปีที่ 3</option>
+      </select>
+      <select class="filter-select" id="filter-screen">
+        <option value="">ทุกกลุ่ม</option>
+        <option value="ปกติ">กลุ่มปกติ</option>
+        <option value="เสี่ยง">กลุ่มเสี่ยง</option>
+        <option value="ปัญหา">กลุ่มมีปัญหา</option>
+      </select>
+      <button class="btn btn-sm" onclick="exportJSON()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        ส่งออก
+      </button>
+      <button class="btn btn-sm" onclick="importJSON()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        นำเข้า
+      </button>
+    </div>
+
+    <div id="visit-list-container"></div>
+  </section>
+
+  <!-- ===== MAP ===== -->
+  <section class="view" id="map">
+    <div class="hero" style="padding: 28px 32px;">
+      <div class="hero-eyebrow">GEOSPATIAL · แผนที่ภูมิศาสตร์</div>
+      <h2 style="font-size: 36px;">แผนที่<span class="accent">เยี่ยมบ้าน</span></h2>
+      <p>แสดงตำแหน่งบ้านนักเรียนที่เยี่ยมแล้วบนแผนที่ คลิกหมุดเพื่อดูข้อมูลและกรองตามผลคัดกรอง</p>
+    </div>
+
+    <div class="map-stats-bar">
+      <div class="map-stat-chip" style="color: var(--neon)"><span class="dot" style="background: var(--neon)"></span>กลุ่มปกติ <strong id="map-count-normal">0</strong></div>
+      <div class="map-stat-chip" style="color: var(--warning)"><span class="dot" style="background: var(--warning)"></span>กลุ่มเสี่ยง <strong id="map-count-risk">0</strong></div>
+      <div class="map-stat-chip" style="color: var(--danger)"><span class="dot" style="background: var(--danger)"></span>กลุ่มมีปัญหา <strong id="map-count-problem">0</strong></div>
+      <div class="map-stat-chip"><span style="color: var(--text-muted)">ไม่มีพิกัด</span> <strong id="map-count-nocoord">0</strong></div>
+    </div>
+
+    <div class="toolbar map-toolbar">
+      <select class="filter-select" id="map-filter-screen">
+        <option value="">แสดงทุกกลุ่ม</option>
+        <option value="ปกติ">เฉพาะกลุ่มปกติ</option>
+        <option value="เสี่ยง">เฉพาะกลุ่มเสี่ยง</option>
+        <option value="ปัญหา">เฉพาะกลุ่มมีปัญหา</option>
+      </select>
+      <select class="filter-select" id="map-filter-grade">
+        <option value="">ทุกระดับชั้น</option>
+        <option>อนุบาล 1</option><option>อนุบาล 2</option><option>อนุบาล 3</option>
+        <option>ประถมศึกษาปีที่ 1</option><option>ประถมศึกษาปีที่ 2</option>
+        <option>ประถมศึกษาปีที่ 3</option><option>ประถมศึกษาปีที่ 4</option>
+        <option>ประถมศึกษาปีที่ 5</option><option>ประถมศึกษาปีที่ 6</option>
+        <option>มัธยมศึกษาปีที่ 1</option><option>มัธยมศึกษาปีที่ 2</option><option>มัธยมศึกษาปีที่ 3</option>
+      </select>
+      <button class="btn btn-sm" onclick="centerOnSchool()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        ไปที่โรงเรียน
+      </button>
+      <button class="btn btn-sm" onclick="fitMapToMarkers()">
+        <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        ขยายให้พอดี
+      </button>
+    </div>
+
+    <div class="map-container">
+      <div id="leaflet-map"></div>
+    </div>
+  </section>
+
+  <!-- ===== REPORT ===== -->
+  <section class="view" id="report">
+    <div class="hero" style="padding: 28px 32px;">
+      <div class="hero-eyebrow">ANALYTICS · รายงานเชิงสถิติ</div>
+      <h2 style="font-size: 36px;">รายงาน<span class="accent">สรุปผล</span></h2>
+      <p>สรุปข้อมูลการเยี่ยมบ้านในภาพรวม สำหรับการวางแผนช่วยเหลือนักเรียน</p>
+      <div class="hero-actions">
+        <button class="btn btn-primary" onclick="window.print()">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          พิมพ์รายงาน
+        </button>
+        <button class="btn" onclick="exportJSON()">
+          <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          ดาวน์โหลดข้อมูล
+        </button>
+      </div>
+    </div>
+
+    <div class="report-grid">
+      <div class="chart-box">
+        <h4>การคัดกรองนักเรียน</h4>
+        <div id="chart-screening"></div>
+      </div>
+      <div class="chart-box">
+        <h4>การเยี่ยมตามระดับชั้น</h4>
+        <div id="chart-grade"></div>
+      </div>
+      <div class="chart-box">
+        <h4>ด้านที่พบความเสี่ยง</h4>
+        <div id="chart-risk"></div>
+      </div>
+      <div class="chart-box stat-rows">
+        <h4>สถิติเพิ่มเติม</h4>
+        <div id="chart-extra"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p><strong>โรงเรียนบ้านมาบฟัทอง</strong> · ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี</p>
+  <p style="margin-top: 6px; opacity: 0.7;">ระบบบันทึกการเยี่ยมบ้านนักเรียน v2.0 · ตามแนวทางกระทรวงศึกษาธิการ</p>
+</footer>
+
+<!-- Modal -->
+<div class="modal-overlay" id="detail-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modal-title">รายละเอียดการเยี่ยม</h3>
+      <button class="modal-close" onclick="closeModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast">
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+  <span id="toast-msg">บันทึกเรียบร้อย</span>
+</div>
+
+<input type="file" id="import-file" accept=".json" style="display:none">
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+  integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  // ===== CONFIG =====
+  const STORAGE_KEY = 'banmapfaktong_visits_v2';
+  // ที่ตั้งโดยประมาณของโรงเรียนบ้านมาบฟัทอง ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี
+  const SCHOOL_COORDS = [12.8157, 100.9542];
+  const SCHOOL_NAME = 'โรงเรียนบ้านมาบฟัทอง';
+
+  let visits = [];
+  let map = null;
+  let markers = [];
+  let schoolMarker = null;
+
+  // ===== STORAGE =====
+  function loadVisits() {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY);
+      visits = data ? JSON.parse(data) : [];
+    } catch(e) { visits = []; }
+  }
+  function saveVisits() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(visits)); }
+    catch(e) { alert('บันทึกไม่สำเร็จ: ' + e.message); }
+  }
+
+  // ===== VIEW SWITCHING =====
+  function switchView(name) {
+    document.querySelectorAll('.nav-btn').forEach(t => t.classList.toggle('active', t.dataset.view === name));
+    document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === name));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (name === 'dashboard') renderDashboard();
+    if (name === 'list') renderList();
+    if (name === 'report') renderReport();
+    if (name === 'map') {
+      setTimeout(() => {
+        initMap();
+        renderMarkers();
+      }, 200);
+    }
+  }
+  document.querySelectorAll('.nav-btn').forEach(t => t.addEventListener('click', () => switchView(t.dataset.view)));
+
+  // ===== FORM =====
+  const form = document.getElementById('visit-form');
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const fd = new FormData(form);
+    const data = {};
+    for (const [k, v] of fd.entries()) {
+      if (data[k] !== undefined) {
+        if (!Array.isArray(data[k])) data[k] = [data[k]];
+        data[k].push(v);
+      } else { data[k] = v; }
+    }
+    data.facility = fd.getAll('facility');
+    data.risk_area = fd.getAll('risk_area');
+    data.id = 'V' + Date.now() + Math.floor(Math.random()*1000);
+    data.created_at = new Date().toISOString();
+    visits.unshift(data);
+    saveVisits();
+    showToast('บันทึกการเยี่ยมเรียบร้อย');
+    form.reset();
+    document.getElementById('location-display').value = '';
+    document.querySelectorAll('.check-item.checked').forEach(c => c.classList.remove('checked'));
+    document.querySelectorAll('.radio-item.selected').forEach(c => c.classList.remove('selected'));
+    setTimeout(() => switchView('dashboard'), 800);
+  });
+
+  // Visual feedback for checkboxes/radios
+  document.addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox') {
+      e.target.closest('.check-item')?.classList.toggle('checked', e.target.checked);
+    }
+    if (e.target.type === 'radio') {
+      document.querySelectorAll(`input[name="${e.target.name}"]`).forEach(r => {
+        r.closest('.radio-item')?.classList.toggle('selected', r.checked);
+      });
+    }
+  });
+
+  // Default visit date = today
+  const visitDateInput = document.querySelector('input[name="visit_date"]');
+  if (visitDateInput) visitDateInput.valueAsDate = new Date();
+
+  // ===== GEOLOCATION =====
+  function getCurrentLocation() {
+    const display = document.getElementById('location-display');
+    if (!navigator.geolocation) {
+      display.value = 'เบราว์เซอร์ไม่รองรับ Geolocation';
+      return;
+    }
+    display.value = 'กำลังดึงตำแหน่ง...';
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const lat = pos.coords.latitude.toFixed(6);
+      const lng = pos.coords.longitude.toFixed(6);
+      document.querySelector('input[name="lat"]').value = lat;
+      document.querySelector('input[name="lng"]').value = lng;
+      display.value = `${lat}, ${lng} (แม่นยำ ±${Math.round(pos.coords.accuracy)} เมตร)`;
+      showToast('ดึงตำแหน่งสำเร็จ');
+    }, (err) => {
+      display.value = 'ไม่สามารถดึงตำแหน่ง: ' + err.message;
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  }
+
+  // ===== DASHBOARD =====
+  function renderDashboard() {
+    const total = visits.length;
+    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30);
+    const monthCount = visits.filter(v => new Date(v.created_at) >= monthAgo).length;
+    const risk = visits.filter(v => v.screening === 'เสี่ยง' || v.screening === 'ปัญหา').length;
+    const normal = visits.filter(v => v.screening === 'ปกติ').length;
+
+    animateNum('stat-total', total);
+    animateNum('stat-month', monthCount);
+    animateNum('stat-risk', risk);
+    animateNum('stat-normal', normal);
+
+    const recent = visits.slice(0, 6);
+    const container = document.getElementById('recent-list');
+    if (recent.length === 0) {
+      container.innerHTML = `<div class="empty">
+        <div class="empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+        <h3>ยังไม่มีการเยี่ยมบ้าน</h3>
+        <p>เริ่มบันทึกข้อมูลการเยี่ยมบ้านครอบครัวแรกของคุณ</p>
+        <button class="btn btn-primary" onclick="switchView('add')">เริ่มบันทึก</button>
+      </div>`;
+    } else {
+      container.innerHTML = '<div class="visit-grid">' + recent.map(visitCardHTML).join('') + '</div>';
+    }
+  }
+
+  function animateNum(id, target) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const dur = 700, t0 = performance.now();
+    function step(t) {
+      const p = Math.min(1, (t - t0) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      el.textContent = Math.floor(target * eased).toLocaleString('th-TH');
+      if (p < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ===== LIST =====
+  function visitCardHTML(v) {
+    const screenClass = v.screening === 'ปกติ' ? 'screen-normal' : v.screening === 'เสี่ยง' ? 'screen-risk' : 'screen-problem';
+    const hasCoords = v.lat && v.lng;
+    return `
+      <div class="visit-card">
+        <div class="visit-card-head">
+          <div>
+            <div class="name">${escapeHTML(v.student_name || 'ไม่ระบุชื่อ')}</div>
+            <div class="id">ID: ${escapeHTML(v.student_id || '-')}</div>
+          </div>
+          <div class="grade">${escapeHTML(v.grade || '-')}</div>
+        </div>
+        <div class="visit-card-body">
+          <div class="visit-row"><span class="lbl">วันที่เยี่ยม</span><span class="val">${formatDate(v.visit_date)}</span></div>
+          <div class="visit-row"><span class="lbl">ครูผู้เยี่ยม</span><span class="val">${escapeHTML(v.teacher_name || '-')}</span></div>
+          <div class="visit-row"><span class="lbl">คัดกรอง</span><span class="screen-tag ${screenClass}">${escapeHTML(v.screening || '-')}</span></div>
+          <div class="visit-row"><span class="lbl">พิกัด GPS</span><span class="val" style="font-family: 'JetBrains Mono', monospace; font-size: 11px;">${hasCoords ? '✓ บันทึกแล้ว' : '— ไม่มี'}</span></div>
+        </div>
+        <div class="visit-card-foot">
+          <button class="btn btn-sm btn-ghost" onclick="viewDetail('${v.id}')">รายละเอียด</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteVisit('${v.id}')">ลบ</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderList() {
+    const q = document.getElementById('search').value.toLowerCase().trim();
+    const g = document.getElementById('filter-grade').value;
+    const s = document.getElementById('filter-screen').value;
+    let filtered = visits.filter(v => {
+      if (g && v.grade !== g) return false;
+      if (s && v.screening !== s) return false;
+      if (q) {
+        const blob = [v.student_name, v.student_id, v.teacher_name, v.address].join(' ').toLowerCase();
+        if (!blob.includes(q)) return false;
+      }
+      return true;
+    });
+    const c = document.getElementById('visit-list-container');
+    if (filtered.length === 0) {
+      c.innerHTML = `<div class="empty">
+        <div class="empty-icon"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+        <h3>ไม่พบข้อมูล</h3>
+        <p>${visits.length === 0 ? 'ยังไม่มีการบันทึกการเยี่ยมบ้าน' : 'ลองเปลี่ยนคำค้นหาหรือตัวกรอง'}</p>
+        ${visits.length === 0 ? '<button class="btn btn-primary" onclick="switchView(\'add\')">เริ่มบันทึก</button>' : ''}
+      </div>`;
+    } else {
+      c.innerHTML = '<div class="visit-grid">' + filtered.map(visitCardHTML).join('') + '</div>';
+    }
+  }
+
+  document.getElementById('search').addEventListener('input', renderList);
+  document.getElementById('filter-grade').addEventListener('change', renderList);
+  document.getElementById('filter-screen').addEventListener('change', renderList);
+
+  // ===== MAP =====
+  function initMap() {
+    if (map) { map.invalidateSize(); return; }
+    map = L.map('leaflet-map', {
+      center: SCHOOL_COORDS,
+      zoom: 14,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    // Dark map tiles from CartoDB
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> · © <a href="https://carto.com/attributions">CARTO</a>',
+      subdomains: 'abcd',
+      maxZoom: 19
+    }).addTo(map);
+
+    // School marker
+    const schoolIcon = L.divIcon({
+      className: 'custom-marker',
+      html: `<div class="marker-pin marker-school" style="color: var(--neon);">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0A0E0A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </div>`,
+      iconSize: [36, 36],
+      iconAnchor: [18, 18]
+    });
+    schoolMarker = L.marker(SCHOOL_COORDS, { icon: schoolIcon, zIndexOffset: 1000 }).addTo(map);
+    schoolMarker.bindPopup(`<div class="popup-card"><div class="pc-name">${SCHOOL_NAME}</div><div class="pc-grade">SCHOOL · ตำแหน่งโรงเรียน</div><div style="color: var(--text-muted); font-size: 12px;">ต.ห้วยใหญ่ อ.บางละมุง จ.ชลบุรี</div></div>`);
+  }
+
+  function makeStudentIcon(screening) {
+    const color = screening === 'ปกติ' ? '#B8FF00'
+                : screening === 'เสี่ยง' ? '#FFC93D'
+                : screening === 'ปัญหา' ? '#FF3B5C'
+                : '#8B9B8B';
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `<div class="marker-pin" style="background:${color}; color:${color};"></div>`,
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+  }
+
+  function renderMarkers() {
+    if (!map) return;
+    // Clear old markers
+    markers.forEach(m => map.removeLayer(m));
+    markers = [];
+
+    const screenFilter = document.getElementById('map-filter-screen').value;
+    const gradeFilter = document.getElementById('map-filter-grade').value;
+
+    let counts = { 'ปกติ': 0, 'เสี่ยง': 0, 'ปัญหา': 0, nocoord: 0 };
+    visits.forEach(v => {
+      if (v.lat && v.lng) {
+        if (counts[v.screening] !== undefined) counts[v.screening]++;
+      } else {
+        counts.nocoord++;
+      }
+    });
+    document.getElementById('map-count-normal').textContent = counts['ปกติ'];
+    document.getElementById('map-count-risk').textContent = counts['เสี่ยง'];
+    document.getElementById('map-count-problem').textContent = counts['ปัญหา'];
+    document.getElementById('map-count-nocoord').textContent = counts.nocoord;
+
+    const withCoords = visits.filter(v => {
+      if (!v.lat || !v.lng) return false;
+      if (screenFilter && v.screening !== screenFilter) return false;
+      if (gradeFilter && v.grade !== gradeFilter) return false;
+      return true;
+    });
+
+    withCoords.forEach(v => {
+      const lat = parseFloat(v.lat);
+      const lng = parseFloat(v.lng);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const marker = L.marker([lat, lng], { icon: makeStudentIcon(v.screening) }).addTo(map);
+      const screenColor = v.screening === 'ปกติ' ? 'var(--neon)' : v.screening === 'เสี่ยง' ? 'var(--warning)' : 'var(--danger)';
+      const popupHtml = `
+        <div class="popup-card">
+          <div class="pc-name">${escapeHTML(v.student_name || '-')}</div>
+          <div class="pc-grade">${escapeHTML(v.grade || '-')} · ID: ${escapeHTML(v.student_id || '-')}</div>
+          <div class="pc-row"><span class="l">วันที่เยี่ยม</span><span class="v">${formatDate(v.visit_date)}</span></div>
+          <div class="pc-row"><span class="l">ครูผู้เยี่ยม</span><span class="v">${escapeHTML(v.teacher_name || '-')}</span></div>
+          <div class="pc-row"><span class="l">คัดกรอง</span><span class="v" style="color:${screenColor}; font-weight:700;">${escapeHTML(v.screening || '-')}</span></div>
+          <div class="pc-actions">
+            <button class="pc-btn" onclick="viewDetail('${v.id}'); closeMapPopups();">ดูรายละเอียดเต็ม</button>
+          </div>
+        </div>
+      `;
+      marker.bindPopup(popupHtml);
+      markers.push(marker);
+    });
+  }
+
+  function closeMapPopups() { if (map) map.closePopup(); }
+
+  function centerOnSchool() {
+    if (!map) return;
+    map.flyTo(SCHOOL_COORDS, 15, { duration: 1.2 });
+  }
+
+  function fitMapToMarkers() {
+    if (!map) return;
+    if (markers.length === 0) { centerOnSchool(); return; }
+    const group = L.featureGroup([schoolMarker, ...markers]);
+    map.flyToBounds(group.getBounds(), { padding: [40, 40], duration: 1.2 });
+  }
+
+  document.getElementById('map-filter-screen').addEventListener('change', renderMarkers);
+  document.getElementById('map-filter-grade').addEventListener('change', renderMarkers);
+
+  // ===== DETAIL MODAL =====
+  function viewDetail(id) {
+    const v = visits.find(x => x.id === id);
+    if (!v) return;
+    document.getElementById('modal-title').textContent = v.student_name || 'รายละเอียด';
+    const sections = [
+      { title: 'ข้อมูลนักเรียน', rows: [
+        ['ระดับชั้น', v.grade + (v.room ? ' / ' + v.room : '')],
+        ['เลขประจำตัว', v.student_id],
+        ['เพศ', v.gender],
+        ['วันเกิด', formatDate(v.birthdate)],
+        ['เลขบัตรประชาชน', v.citizen_id],
+        ['เบอร์โทร', v.student_phone],
+        ['ที่อยู่', v.address],
+      ]},
+      { title: 'ตำแหน่ง GPS', rows: [
+        ['พิกัด', (v.lat && v.lng) ? `${v.lat}, ${v.lng}` : 'ไม่มีพิกัด']
+      ]},
+      { title: 'ครอบครัว', rows: [
+        ['บิดา', `${v.father_name || '-'} (${v.father_job || '-'})${v.father_income ? ' · ฿' + Number(v.father_income).toLocaleString() : ''}`],
+        ['มารดา', `${v.mother_name || '-'} (${v.mother_job || '-'})${v.mother_income ? ' · ฿' + Number(v.mother_income).toLocaleString() : ''}`],
+        ['ผู้ปกครอง', v.guardian_name ? `${v.guardian_name} (${v.guardian_relation || '-'}) ${v.guardian_phone || ''}` : '-'],
+        ['สถานภาพครอบครัว', v.family_status],
+        ['พี่น้อง', v.siblings ? `${v.siblings} คน · บุตรคนที่ ${v.birth_order || '-'}` : '-'],
+      ]},
+      { title: 'ที่อยู่อาศัย', rows: [
+        ['ลักษณะบ้าน', v.home_type],
+        ['สภาพแวดล้อม', v.environment],
+        ['สิ่งอำนวยความสะดวก', (v.facility && v.facility.length) ? v.facility.join(', ') : '-'],
+        ['หมายเหตุ', v.home_note],
+      ]},
+      { title: 'พฤติกรรม', rows: [
+        ['พฤติกรรมที่บ้าน', v.behavior_home],
+        ['จุดเด่น/ความสามารถ', v.strength],
+        ['ปัญหาที่พบ', v.problem],
+      ]},
+      { title: 'การคัดกรอง', rows: [
+        ['ผลการคัดกรอง', v.screening],
+        ['ด้านที่พบความเสี่ยง', (v.risk_area && v.risk_area.length) ? v.risk_area.join(', ') : '-'],
+      ]},
+      { title: 'การเยี่ยม', rows: [
+        ['วันที่เยี่ยม', formatDate(v.visit_date)],
+        ['ครูผู้เยี่ยม', v.teacher_name],
+        ['ผู้ให้ข้อมูล', v.informant],
+        ['ภาคเรียน', v.semester],
+        ['สรุปผลการเยี่ยม', v.visit_summary],
+        ['แนวทางช่วยเหลือ', v.recommendation],
+      ]},
+    ];
+    document.getElementById('modal-body').innerHTML = sections.map(sec => {
+      const rows = sec.rows.map(([k, val]) =>
+        `<div class="detail-row"><div class="lbl">${k}</div><div class="val">${escapeHTML(val || '-')}</div></div>`
+      ).join('');
+      return `<div class="detail-section-label">${sec.title}</div>${rows}`;
+    }).join('');
+    document.getElementById('detail-modal').classList.add('active');
+  }
+
+  function closeModal() { document.getElementById('detail-modal').classList.remove('active'); }
+
+  document.getElementById('detail-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'detail-modal') closeModal();
+  });
+
+  function deleteVisit(id) {
+    if (!confirm('ยืนยันการลบข้อมูลการเยี่ยมนี้?')) return;
+    visits = visits.filter(v => v.id !== id);
+    saveVisits();
+    renderList();
+    renderDashboard();
+    if (map) renderMarkers();
+    showToast('ลบข้อมูลเรียบร้อย');
+  }
+
+  // ===== EXPORT / IMPORT =====
+  function exportJSON() {
+    if (visits.length === 0) { alert('ยังไม่มีข้อมูลให้ส่งออก'); return; }
+    const blob = new Blob([JSON.stringify(visits, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const today = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `เยี่ยมบ้าน-มาบฟัทอง-${today}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('ดาวน์โหลดสำเร็จ');
+  }
+
+  function importJSON() { document.getElementById('import-file').click(); }
+  document.getElementById('import-file').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const data = JSON.parse(ev.target.result);
+        if (!Array.isArray(data)) throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
+        if (confirm(`นำเข้าข้อมูล ${data.length} รายการ? (จะรวมกับข้อมูลปัจจุบัน)`)) {
+          visits = [...data, ...visits];
+          saveVisits();
+          renderList();
+          renderDashboard();
+          if (map) renderMarkers();
+          showToast(`นำเข้า ${data.length} รายการสำเร็จ`);
+        }
+      } catch(err) {
+        alert('นำเข้าไม่สำเร็จ: ' + err.message);
+      }
+    };
+    reader.readAsText(f);
+    e.target.value = '';
+  });
+
+  // ===== REPORT =====
+  function renderReport() {
+    const s = { 'ปกติ': 0, 'เสี่ยง': 0, 'ปัญหา': 0 };
+    visits.forEach(v => { if (s[v.screening] !== undefined) s[v.screening]++; });
+    const sTotal = Math.max(1, s['ปกติ'] + s['เสี่ยง'] + s['ปัญหา']);
+    document.getElementById('chart-screening').innerHTML = [
+      ['กลุ่มปกติ', s['ปกติ'], '#B8FF00'],
+      ['กลุ่มเสี่ยง', s['เสี่ยง'], '#FFC93D'],
+      ['กลุ่มมีปัญหา', s['ปัญหา'], '#FF3B5C']
+    ].map(([n, c, col]) => barRow(n, c, sTotal, col)).join('');
+
+    const grades = {};
+    visits.forEach(v => { if (v.grade) grades[v.grade] = (grades[v.grade] || 0) + 1; });
+    const gTotal = Math.max(1, Math.max(...Object.values(grades), 1));
+    const gEntries = Object.entries(grades).sort((a,b) => b[1] - a[1]);
+    document.getElementById('chart-grade').innerHTML = gEntries.length
+      ? gEntries.map(([n, c]) => barRow(n, c, gTotal, '#B8FF00')).join('')
+      : '<p style="color: var(--text-muted); font-size: 13px;">ยังไม่มีข้อมูล</p>';
+
+    const risks = {};
+    visits.forEach(v => {
+      if (v.risk_area && Array.isArray(v.risk_area)) {
+        v.risk_area.forEach(r => { risks[r] = (risks[r] || 0) + 1; });
+      }
+    });
+    const rTotal = Math.max(1, Math.max(...Object.values(risks), 1));
+    const rEntries = Object.entries(risks).sort((a,b) => b[1] - a[1]);
+    document.getElementById('chart-risk').innerHTML = rEntries.length
+      ? rEntries.map(([n, c]) => barRow(n, c, rTotal, '#FF3B5C')).join('')
+      : '<p style="color: var(--text-muted); font-size: 13px;">ยังไม่มีข้อมูล</p>';
+
+    const teachers = new Set(visits.map(v => v.teacher_name).filter(Boolean));
+    const lowIncome = visits.filter(v => {
+      const total = (parseFloat(v.father_income) || 0) + (parseFloat(v.mother_income) || 0);
+      return total > 0 && total < 15000;
+    }).length;
+    const familyStatus = {};
+    visits.forEach(v => { if (v.family_status) familyStatus[v.family_status] = (familyStatus[v.family_status] || 0) + 1; });
+    const withGPS = visits.filter(v => v.lat && v.lng).length;
+    document.getElementById('chart-extra').innerHTML = `
+      <div class="detail-row"><div class="lbl">จำนวนครูที่เยี่ยม</div><div class="val">${teachers.size}</div></div>
+      <div class="detail-row"><div class="lbl">ครอบครัวรายได้น้อย (&lt; ฿15,000)</div><div class="val">${lowIncome}</div></div>
+      <div class="detail-row"><div class="lbl">การเยี่ยมทั้งหมด</div><div class="val">${visits.length}</div></div>
+      <div class="detail-row"><div class="lbl">บิดามารดาแยกกัน/หย่าร้าง</div><div class="val">${(familyStatus['บิดามารดาแยกกันอยู่'] || 0) + (familyStatus['บิดามารดาหย่าร้าง'] || 0)}</div></div>
+      <div class="detail-row"><div class="lbl">มีพิกัด GPS</div><div class="val">${withGPS}</div></div>
+    `;
+  }
+
+  function barRow(name, count, total, color) {
+    const pct = Math.round((count / total) * 100);
+    return `
+      <div class="bar-row">
+        <div class="bar-label"><span>${escapeHTML(name)}</span><span class="ct">${count}</span></div>
+        <div class="bar-track"><div class="bar-fill" style="width: ${pct}%; background: ${color}; color: ${color};"></div></div>
+      </div>
+    `;
+  }
+
+  // ===== UTILS =====
+  function escapeHTML(s) {
+    if (s == null) return '';
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function formatDate(d) {
+    if (!d) return '-';
+    try {
+      const dt = new Date(d);
+      if (isNaN(dt)) return d;
+      return dt.toLocaleDateString('th-TH', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch(e) { return d; }
+  }
+  function showToast(msg) {
+    document.getElementById('toast-msg').textContent = msg;
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2500);
+  }
+
+  // ===== INIT =====
+  loadVisits();
+  renderDashboard();
+</script>
+</body>
+</html>
